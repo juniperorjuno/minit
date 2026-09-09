@@ -420,8 +420,17 @@ impl eframe::App for MinitApp {
 }
 
 fn main() -> eframe::Result<()> {
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([440.0, 640.0]),
+        let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_icon(std::sync::Arc::new(egui::IconData {
+                rgba: image::load_from_memory(include_bytes!("../assets/icon.png"))
+                    .unwrap()
+                    .to_rgba8()
+                    .to_vec(),
+                width: 384,
+                height: 384,
+            }))
+            .with_inner_size([440.0, 640.0]),
         ..Default::default()
     };
 

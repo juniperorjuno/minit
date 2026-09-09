@@ -11,6 +11,7 @@ serde_json = "1"
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 directories = "5"
+image = "0.25.10"
 
 [profile.release]
 opt-level = 3
