@@ -1,16 +1,19 @@
 # Minit
 
-> **What can you get done right now?**
+> **What can you do right this Minit?**
 
 Minit is a lightweight desktop to-do list built with **Rust** and **egui** that helps you decide what to work on based on how much free time you have.
 
+![Screenshot of the Minit App showing a list of chores to do.](/assets/TimeForLaundry.png)
+![Screenshot of the Minit App saying that you don't have time, but you might start the shortest chore.](/assets/NotEnoughTime.png)
+
 ## Features
 
-- **Time-Based Suggestions** — Get suggestions for what to work on based on the amount of time you have available.
-- **Priorities** — Organize tasks by **Low**, **Medium**, or **High** priority.
-- **Minimal & Distraction-Free** — Native desktop performance with a simple, focused interface and zero bloat.
-- **Automatic Saving** — Tasks and preferences are automatically saved between sessions.
-- **Inline Editing** — Double-click any task title in the task-list to edit it directly.
+- **Time-Based Suggestions**: Get suggestions for what to work on based on the amount of time you have available.
+- **Priorities**: Organize tasks by **Low**, **Medium**, or **High** priority.
+- **Minimal & Distraction-Free**: Native desktop performance with a simple, focused interface and zero bloat.
+- **Automatic Saving**: Tasks and preferences are automatically saved between sessions.
+- **Inline Editing**: Double-click any task title in the task-list to edit it directly.
 
 ## Quickstart
 
