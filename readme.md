@@ -4,7 +4,9 @@
 
 Minit is a lightweight desktop to-do list built with **Rust** and **egui** that helps you decide what to work on based on how much free time you have.
 
-![Screenshot of the Minit App showing a list of chores to do.](/assets/TimeForLaundry.png)
+<p align="center">
+    ![Screenshot of the Minit App showing a list of chores to do.](/assets/TimeForLaundry.png)
+</p>
 
 ## Features
 
