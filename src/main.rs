@@ -40,6 +40,7 @@ struct Task {
     estimated_minutes: u32,
     created_at: DateTime<Utc>,
     completed_at: Option<DateTime<Utc>>,
+    skipped_until: Option<DateTime<Utc>>,
 }
 
 impl Task {
@@ -52,6 +53,7 @@ impl Task {
             estimated_minutes,
             created_at: Utc::now(),
             completed_at: None,
+            skipped_until: None,
         }
     }
 }
@@ -65,6 +67,7 @@ enum Filter {
 
 enum Suggestion {
     Fits(Uuid),
+    FitsSkipped(Uuid),
     Fallback(Uuid),
     NoTasks,
 }
@@ -142,6 +145,13 @@ impl MinitApp {
         self.save_tasks();
     }
 
+    fn skip_task(&mut self, id: Uuid) {
+        if let Some(t) = self.tasks.iter_mut().find(|t| t.id == id) {
+            t.skipped_until = Some(Utc::now() + chrono::Duration::minutes(self.available_minutes as i64));
+        }
+        self.save_tasks();
+    }
+
     fn toggle_task(&mut self, id: Uuid) {
         if let Some(t) = self.tasks.iter_mut().find(|t| t.id == id) {
             t.done = !t.done;
@@ -172,12 +182,15 @@ impl MinitApp {
             return Suggestion::NoTasks;
         }
 
-        let mut candidates: Vec<&&Task> = active
+        let now = Utc::now();
+        let not_skipped = |t: &&&Task| t.skipped_until.map_or(true, |until| until <= now);
+
+        let fitting: Vec<&&Task> = active
             .iter()
             .filter(|t| t.estimated_minutes <= self.available_minutes)
             .collect();
 
-        if candidates.is_empty() {
+        if fitting.is_empty() {
             let shortest = active
                 .iter()
                 .min_by_key(|t| (t.estimated_minutes, t.created_at))
@@ -185,18 +198,31 @@ impl MinitApp {
             return Suggestion::Fallback(shortest.id);
         }
 
-        candidates.sort_by(|a, b| {
-            b.priority
-                .cmp(&a.priority)
-                .then_with(|| {
-                    let slack_a = self.available_minutes - a.estimated_minutes;
-                    let slack_b = self.available_minutes - b.estimated_minutes;
-                    slack_a.cmp(&slack_b)
-                })
-                .then_with(|| a.created_at.cmp(&b.created_at))
-        });
+        let ranked_by_priority = |list: &mut Vec<&&Task>| {
+            list.sort_by(|a, b| {
+                b.priority
+                    .cmp(&a.priority)
+                    .then_with(|| {
+                        let sub_a = self.available_minutes.saturating_sub(a.estimated_minutes);
+                        let sub_b = self.available_minutes.saturating_sub(b.estimated_minutes);
+                        sub_a.cmp(&sub_b)
+                    })
+                    .then_with(|| a.created_at.cmp(&b.created_at))
+            });
+        };
 
-        Suggestion::Fits(candidates[0].id)
+        let mut candidates: Vec<&&Task> = fitting.iter().copied().filter(not_skipped).collect();
+
+        if !candidates.is_empty() {
+            ranked_by_priority(&mut candidates);
+            return Suggestion::Fits(candidates[0].id);
+        }
+
+        let shortest_fitting = fitting
+            .iter()
+            .min_by_key(|t| (t.estimated_minutes, t.created_at))
+            .unwrap();
+        Suggestion::FitsSkipped(shortest_fitting.id)
     }
 
     fn task_by_id(&self, id: Uuid) -> Option<&Task> {
@@ -250,11 +276,14 @@ impl eframe::App for MinitApp {
                                         t.priority.label(),
                                         t.estimated_minutes,
                                         if t.estimated_minutes == 1 { "min" } else { "mins" },
-                                        t.estimated_minutes - self.available_minutes
+                                        t.estimated_minutes.saturating_sub(self.available_minutes)
                                     ));
                                 });
                                 if ui.button("Mark done").clicked() {
                                     self.toggle_task(id);
+                                }
+                                if ui.button("Now now >>").clicked() {
+                                    self.skip_task(id);
                                 }
                             }
                         }
@@ -273,9 +302,39 @@ impl eframe::App for MinitApp {
                                     t.estimated_minutes,
                                     if t.estimated_minutes == 1 { "min" } else { "mins" }
                                 ));
-                                if ui.button("✅ Mark done").clicked() {
-                                    self.toggle_task(id);
-                                }
+                                ui.horizontal(|ui| {
+                                    if ui.button("✅ Mark done").clicked() {
+                                        self.toggle_task(id);
+                                    }
+                                    if ui.button("⏭ Not now").clicked() {
+                                        self.skip_task(id);
+                                    }
+                                });
+                            }
+                        }
+                        Suggestion::FitsSkipped(id) => {
+                            if let Some(t) = self.task_by_id(id) {
+                                ui.label(egui::RichText::new("You skipped every task, here's the smallest thing you could still knock out:").weak());
+                                ui.horizontal(|ui| {
+                                    let (rect, _) = ui
+                                        .allocate_exact_size(egui::vec2(10.0, 10.0), egui::Sense::hover());
+                                    ui.painter().circle_filled(rect.center(), 5.0, t.priority.color());
+                                    ui.heading(&t.title);
+                                });
+                                ui.label(format!(
+                                    "{} priority · about {} {}",
+                                    t.priority.label(),
+                                    t.estimated_minutes,
+                                    if t.estimated_minutes == 1 { "min" } else { "mins" }
+                                ));
+                                ui.horizontal(|ui| {
+                                    if ui.button("✅ Mark done").clicked() {
+                                        self.toggle_task(id);
+                                    }
+                                    if ui.button("⏭ Not now").clicked() {
+                                        self.skip_task(id);
+                                    }
+                                });
                             }
                         }
                     }
