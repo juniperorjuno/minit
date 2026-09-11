@@ -266,19 +266,19 @@ impl eframe::App for MinitApp {
                                     egui::RichText::new("Nothing fits perfectly, but here's your shortest task:")
                                         .weak(),
                                 );
-                                ui.horizontal(|ui| {
+                                 ui.horizontal(|ui| {
                                     let (rect, _) = ui
                                         .allocate_exact_size(egui::vec2(10.0, 10.0), egui::Sense::hover());
                                     ui.painter().circle_filled(rect.center(), 5.0, t.priority.color());
-                                    ui.strong(&t.title);
-                                    ui.label(format!(
-                                        "({} · {} {} — needs {} more than you have)",
-                                        t.priority.label(),
-                                        t.estimated_minutes,
-                                        if t.estimated_minutes == 1 { "min" } else { "mins" },
-                                        t.estimated_minutes.saturating_sub(self.available_minutes)
-                                    ));
+                                    ui.heading(&t.title);
                                 });
+                                ui.label(format!(
+                                    "{} priority · about {} {} (needs {} more than you have)",
+                                    t.priority.label(),
+                                    t.estimated_minutes,
+                                    if t.estimated_minutes == 1 { "min" } else { "mins" },
+                                    t.estimated_minutes.saturating_sub(self.available_minutes)
+                                ));
                                 if ui.button("Mark done").clicked() {
                                     self.toggle_task(id);
                                 }
